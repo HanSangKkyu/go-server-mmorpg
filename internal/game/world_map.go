@@ -10,7 +10,7 @@ import (
 type Portal struct {
 	X, Y      float64
 	Radius    float64
-	TargetMap string
+	TargetMap *WorldMap
 	TargetX   float64
 	TargetY   float64
 }

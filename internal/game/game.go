@@ -24,39 +24,44 @@ func NewGame() *Game {
 		quitch:  make(chan struct{}),
 	}
 
-	g.maps["town"] = NewWorldMap("town")
-	g.maps["town"].Portals = append(g.maps["town"].Portals, &Portal{
+	town := NewWorldMap("town")
+	field := NewWorldMap("field")
+	dungeon := NewWorldMap("dungeon")
+
+	g.maps["town"] = town
+	g.maps["field"] = field
+	g.maps["dungeon"] = dungeon
+
+	town.Portals = append(town.Portals, &Portal{
 		X:         750,
 		Y:         300,
 		Radius:    30,
-		TargetMap: "field",
+		TargetMap: field,
 		TargetX:   50,
 		TargetY:   300,
 	})
 
-	g.maps["field"] = NewWorldMap("field")
-	g.maps["field"].Portals = append(g.maps["field"].Portals, &Portal{
+	field.Portals = append(field.Portals, &Portal{
 		X:         50,
 		Y:         300,
 		Radius:    30,
-		TargetMap: "town",
+		TargetMap: town,
 		TargetX:   750,
 		TargetY:   300,
 	}, &Portal{
 		X:         750,
 		Y:         300,
 		Radius:    30,
-		TargetMap: "dungeon",
+		TargetMap: dungeon,
 		TargetX:   50,
 		TargetY:   300,
 	})
 
-	g.maps["dungeon"] = NewWorldMap("dungeon")
-	g.maps["dungeon"].Portals = append(g.maps["dungeon"].Portals, &Portal{
+	dungeon.Portals = append(dungeon.Portals, &Portal{
 		X:         50,
 		Y:         300,
 		Radius:    30,
-		TargetMap: "field",
+		TargetMap: field,
 		TargetX:   750,
 		TargetY:   300,
 	})
@@ -164,7 +169,7 @@ func (g *Game) checkPortalCollisions(p *Player) {
 		dx := p.X - portal.X
 		dy := p.Y - portal.Y
 		if dx*dx+dy*dy < portal.Radius*portal.Radius {
-			g.switchMap(p, portal.TargetMap, portal.TargetX, portal.TargetY)
+			g.switchMap(p, portal.TargetMap.ID, portal.TargetX, portal.TargetY)
 			return
 		}
 	}
@@ -183,7 +188,7 @@ func (g *Game) switchMap(p *Player, targetMap string, targetX, targetY float64) 
 				X:      p.X,
 				Y:      p.Y,
 				Radius: p.Radius,
-				Target: p.TargetMap,
+				Target: p.TargetMap.ID,
 			})
 		}
 	}
@@ -236,7 +241,7 @@ func (g *Game) AddPlayer(conn Connection) *Player {
 				X:      por.X,
 				Y:      por.Y,
 				Radius: por.Radius,
-				Target: por.TargetMap,
+				Target: por.TargetMap.ID,
 			})
 		}
 
