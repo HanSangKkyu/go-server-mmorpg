@@ -17,6 +17,7 @@ const players = new Map();
 const items = new Map();
 const monsters = new Map();
 const projectiles = new Map();
+let portals = [];
 
 let myId = null;
 let myStats = {};
@@ -149,6 +150,8 @@ function handleMessage(msg) {
             items.clear();
             monsters.clear();
             projectiles.clear();
+            portals = msg.portals || [];
+            
             players.forEach((_, id) => {
                 if (id !== myId) players.delete(id);
             });
@@ -216,6 +219,19 @@ function draw() {
     ctx.fillStyle = '#ffd700';
     items.forEach((item) => {
         ctx.fillRect(item.x - 5, item.y - 5, 10, 10);
+    });
+
+    ctx.fillStyle = '#800080';
+    portals.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`To ${p.target}`, p.x, p.y + 5);
+        ctx.fillStyle = '#800080';
     });
 
     // Monsters (Colored Squares based on Type)

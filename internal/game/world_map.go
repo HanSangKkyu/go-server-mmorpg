@@ -7,11 +7,20 @@ import (
 	"time"
 )
 
+type Portal struct {
+	X, Y      float64
+	Radius    float64
+	TargetMap string
+	TargetX   float64
+	TargetY   float64
+}
+
 type WorldMap struct {
 	ID          string
 	Items       map[int]*Item
 	Monsters    map[int]*Monster
 	Projectiles map[int]*Projectile
+	Portals     []*Portal
 
 	Width  float64
 	Height float64
@@ -29,6 +38,7 @@ func NewWorldMap(id string) *WorldMap {
 		Items:       make(map[int]*Item),
 		Monsters:    make(map[int]*Monster),
 		Projectiles: make(map[int]*Projectile),
+		Portals:     make([]*Portal, 0),
 		Width:       800,
 		Height:      600,
 	}

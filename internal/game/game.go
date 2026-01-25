@@ -25,8 +25,41 @@ func NewGame() *Game {
 	}
 
 	g.maps["town"] = NewWorldMap("town")
+	g.maps["town"].Portals = append(g.maps["town"].Portals, &Portal{
+		X:         750,
+		Y:         300,
+		Radius:    30,
+		TargetMap: "field",
+		TargetX:   50,
+		TargetY:   300,
+	})
+
 	g.maps["field"] = NewWorldMap("field")
+	g.maps["field"].Portals = append(g.maps["field"].Portals, &Portal{
+		X:         50,
+		Y:         300,
+		Radius:    30,
+		TargetMap: "town",
+		TargetX:   750,
+		TargetY:   300,
+	}, &Portal{
+		X:         750,
+		Y:         300,
+		Radius:    30,
+		TargetMap: "dungeon",
+		TargetX:   50,
+		TargetY:   300,
+	})
+
 	g.maps["dungeon"] = NewWorldMap("dungeon")
+	g.maps["dungeon"].Portals = append(g.maps["dungeon"].Portals, &Portal{
+		X:         50,
+		Y:         300,
+		Radius:    30,
+		TargetMap: "field",
+		TargetX:   750,
+		TargetY:   300,
+	})
 
 	return g
 }
@@ -66,7 +99,7 @@ func (g *Game) Update() {
 
 	playersByMap := make(map[string][]*Player)
 	for _, p := range g.players {
-		g.checkMapTransitions(p)
+		g.checkPortalCollisions(p)
 		playersByMap[p.MapID] = append(playersByMap[p.MapID], p)
 	}
 
@@ -117,27 +150,22 @@ func (g *Game) Update() {
 	}
 }
 
-func (g *Game) checkMapTransitions(p *Player) {
-	const edge = 20.0
-	width := 800.0
-	height := 600.0
+func (g *Game) checkPortalCollisions(p *Player) {
+	if time.Since(p.LastPortalUse) < 2*time.Second {
+		return
+	}
 
-	centerX := width / 2
-	centerY := height / 2
+	m, ok := g.maps[p.MapID]
+	if !ok {
+		return
+	}
 
-	if p.MapID == "town" {
-		if p.X > width-edge {
-			g.switchMap(p, "field", centerX, centerY)
-		}
-	} else if p.MapID == "field" {
-		if p.X < edge {
-			g.switchMap(p, "town", centerX, centerY)
-		} else if p.X > width-edge {
-			g.switchMap(p, "dungeon", centerX, centerY)
-		}
-	} else if p.MapID == "dungeon" {
-		if p.X < edge {
-			g.switchMap(p, "field", centerX, centerY)
+	for _, portal := range m.Portals {
+		dx := p.X - portal.X
+		dy := p.Y - portal.Y
+		if dx*dx+dy*dy < portal.Radius*portal.Radius {
+			g.switchMap(p, portal.TargetMap, portal.TargetX, portal.TargetY)
+			return
 		}
 	}
 }
@@ -146,12 +174,26 @@ func (g *Game) switchMap(p *Player, targetMap string, targetX, targetY float64) 
 	p.MapID = targetMap
 	p.X = targetX
 	p.Y = targetY
+	p.LastPortalUse = time.Now()
+
+	var portals []PortalData
+	if m, ok := g.maps[targetMap]; ok {
+		for _, p := range m.Portals {
+			portals = append(portals, PortalData{
+				X:      p.X,
+				Y:      p.Y,
+				Radius: p.Radius,
+				Target: p.TargetMap,
+			})
+		}
+	}
 
 	p.SendJSON(MsgMapSwitch{
-		Type: "MAP_SWITCH",
-		Map:  targetMap,
-		X:    targetX,
-		Y:    targetY,
+		Type:    "MAP_SWITCH",
+		Map:     targetMap,
+		X:       targetX,
+		Y:       targetY,
+		Portals: portals,
 	})
 
 	if m, ok := g.maps[targetMap]; ok {
@@ -186,7 +228,27 @@ func (g *Game) AddPlayer(conn Connection) *Player {
 		Gold:    p.Gold,
 	})
 
+	// Send initial map info (portals)
 	if m, ok := g.maps[p.MapID]; ok {
+		var portals []PortalData
+		for _, por := range m.Portals {
+			portals = append(portals, PortalData{
+				X:      por.X,
+				Y:      por.Y,
+				Radius: por.Radius,
+				Target: por.TargetMap,
+			})
+		}
+
+		// Reuse MsgMapSwitch to set initial map and portals
+		p.SendJSON(MsgMapSwitch{
+			Type:    "MAP_SWITCH",
+			Map:     p.MapID,
+			X:       p.X,
+			Y:       p.Y,
+			Portals: portals,
+		})
+
 		for _, item := range m.Items {
 			p.SendJSON(MsgItemSpawn{
 				Type: "ITEM_SPAWN",

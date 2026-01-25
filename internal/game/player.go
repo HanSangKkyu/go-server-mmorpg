@@ -12,15 +12,16 @@ type Connection interface {
 }
 
 type Player struct {
-	ID        int
-	MapID     string
-	Conn      Connection
-	X         float64
-	Y         float64
-	DirX      float64
-	DirY      float64
-	LastShoot time.Time
-	Inventory []*Item
+	ID            int
+	MapID         string
+	Conn          Connection
+	X             float64
+	Y             float64
+	DirX          float64
+	DirY          float64
+	LastShoot     time.Time
+	LastPortalUse time.Time
+	Inventory     []*Item
 
 	HP      int
 	MaxHP   int

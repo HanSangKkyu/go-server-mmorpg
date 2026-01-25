@@ -55,12 +55,20 @@ type MsgLeave struct {
 	ID   int    `json:"id"`
 }
 
+type PortalData struct {
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	Radius float64 `json:"radius"`
+	Target string  `json:"target"`
+}
+
 // MsgMapSwitch - Server -> Client
 type MsgMapSwitch struct {
-	Type string  `json:"type"`
-	Map  string  `json:"map"`
-	X    float64 `json:"x"`
-	Y    float64 `json:"y"`
+	Type    string       `json:"type"`
+	Map     string       `json:"map"`
+	X       float64      `json:"x"`
+	Y       float64      `json:"y"`
+	Portals []PortalData `json:"portals"`
 }
 
 // MsgMove - Client -> Server
