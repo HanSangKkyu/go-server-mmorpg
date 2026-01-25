@@ -55,6 +55,14 @@ type MsgLeave struct {
 	ID   int    `json:"id"`
 }
 
+// MsgMapSwitch - Server -> Client
+type MsgMapSwitch struct {
+	Type string  `json:"type"`
+	Map  string  `json:"map"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+}
+
 // MsgMove - Client -> Server
 type MsgMove struct {
 	Type string  `json:"type"`

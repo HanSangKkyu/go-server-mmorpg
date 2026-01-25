@@ -3,34 +3,32 @@ package game
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"math/rand"
 	"sync"
 	"time"
 )
 
 type Game struct {
-	players     map[int]*Player
-	items       map[int]*Item
-	monsters    map[int]*Monster
-	projectiles map[int]*Projectile
+	players map[int]*Player
+	maps    map[string]*WorldMap
 
-	lock       sync.RWMutex
-	lastID     int
-	lastItemID int
-	lastMonID  int
-	lastProjID int
-	quitch     chan struct{}
+	lock   sync.RWMutex
+	lastID int
+	quitch chan struct{}
 }
 
 func NewGame() *Game {
-	return &Game{
-		players:     make(map[int]*Player),
-		items:       make(map[int]*Item),
-		monsters:    make(map[int]*Monster),
-		projectiles: make(map[int]*Projectile),
-		quitch:      make(chan struct{}),
+	g := &Game{
+		players: make(map[int]*Player),
+		maps:    make(map[string]*WorldMap),
+		quitch:  make(chan struct{}),
 	}
+
+	g.maps["town"] = NewWorldMap("town")
+	g.maps["field"] = NewWorldMap("field")
+	g.maps["dungeon"] = NewWorldMap("dungeon")
+
+	return g
 }
 
 func (g *Game) Start() {
@@ -48,8 +46,17 @@ func (g *Game) Start() {
 		case <-ticker.C:
 			g.Update()
 		case <-monsterTicker.C:
-			g.SpawnMonster()
+			g.SpawnMonsters()
 		}
+	}
+}
+
+func (g *Game) SpawnMonsters() {
+	for _, m := range g.maps {
+		if m.ID == "town" {
+			continue
+		}
+		m.SpawnMonster()
 	}
 }
 
@@ -57,209 +64,106 @@ func (g *Game) Update() {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
-	g.updateProjectiles()
-	g.updatePlayerShooting()
-	g.checkCollisions()
+	playersByMap := make(map[string][]*Player)
+	for _, p := range g.players {
+		g.checkMapTransitions(p)
+		playersByMap[p.MapID] = append(playersByMap[p.MapID], p)
+	}
 
 	if len(g.players) == 0 {
 		return
 	}
 
-	// Create JSON Snapshot
-	snap := MsgSnap{
-		Type:        "SNAP",
-		Players:     make([]*Entity, 0, len(g.players)),
-		Monsters:    make([]*Entity, 0, len(g.monsters)),
-		Projectiles: make([]*Entity, 0, len(g.projectiles)),
-	}
-
-	for _, p := range g.players {
-		snap.Players = append(snap.Players, &Entity{ID: p.ID, X: p.X, Y: p.Y})
-	}
-	for _, m := range g.monsters {
-		snap.Monsters = append(snap.Monsters, &Entity{
-			ID:    m.ID,
-			X:     m.X,
-			Y:     m.Y,
-			Type:  int(m.Type),
-			HP:    m.HP,
-			MaxHP: m.MaxHP,
-		})
-	}
-	for _, proj := range g.projectiles {
-		snap.Projectiles = append(snap.Projectiles, &Entity{ID: proj.ID, X: proj.X, Y: proj.Y})
-	}
-
-	// Broadcast JSON
-	data, err := json.Marshal(snap)
-	if err == nil {
-		for _, p := range g.players {
-			p.Send(data)
+	for mapID, m := range g.maps {
+		mapPlayers := playersByMap[mapID]
+		if len(mapPlayers) == 0 && len(m.Projectiles) == 0 && len(m.Monsters) == 0 {
+			continue
 		}
-	}
-}
 
-func (g *Game) updateProjectiles() {
-	const speed = 10.0
-	const boundary = 1000.0
+		m.UpdateProjectiles()
+		m.UpdatePlayerShooting(mapPlayers)
+		m.CheckCollisions(mapPlayers)
 
-	idsToRemove := []int{}
-
-	for id, p := range g.projectiles {
-		p.X += p.VX * speed
-		p.Y += p.VY * speed
-
-		if p.X < -50 || p.X > 850 || p.Y < -50 || p.Y > 650 {
-			idsToRemove = append(idsToRemove, id)
+		snap := MsgSnap{
+			Type:        "SNAP",
+			Players:     make([]*Entity, 0, len(mapPlayers)),
+			Monsters:    make([]*Entity, 0, len(m.Monsters)),
+			Projectiles: make([]*Entity, 0, len(m.Projectiles)),
 		}
-	}
 
-	for _, id := range idsToRemove {
-		delete(g.projectiles, id)
-	}
-}
-
-func (g *Game) updatePlayerShooting() {
-	now := time.Now()
-	for _, p := range g.players {
-		if now.Sub(p.LastShoot) > time.Millisecond*500 {
-			var target *Monster
-			minDist := math.MaxFloat64
-
-			for _, m := range g.monsters {
-				dx := m.X - p.X
-				dy := m.Y - p.Y
-				dist := dx*dx + dy*dy
-				if dist < minDist {
-					minDist = dist
-					target = m
-				}
-			}
-
-			vx, vy := p.DirX, p.DirY
-
-			if target != nil {
-				dx := target.X - p.X
-				dy := target.Y - p.Y
-				len := math.Sqrt(dx*dx + dy*dy)
-				if len > 0 {
-					vx = dx / len
-					vy = dy / len
-				}
-			} else {
-				continue
-			}
-
-			p.LastShoot = now
-			g.lastProjID++
-
-			proj := &Projectile{
-				ID:      g.lastProjID,
-				OwnerID: p.ID,
-				X:       p.X,
-				Y:       p.Y,
-				VX:      vx,
-				VY:      vy,
-			}
-			g.projectiles[proj.ID] = proj
+		for _, p := range mapPlayers {
+			snap.Players = append(snap.Players, &Entity{ID: p.ID, X: p.X, Y: p.Y})
 		}
-	}
-}
-
-func (g *Game) checkCollisions() {
-	projToRemove := make(map[int]bool)
-	monstersToKill := []int{}
-
-	for pid, proj := range g.projectiles {
-		for mid, mon := range g.monsters {
-			dx := proj.X - mon.X
-			dy := proj.Y - mon.Y
-			if dx*dx+dy*dy < 400 {
-				projToRemove[pid] = true
-
-				damage := 10
-				mon.HP -= damage
-
-				if mon.HP <= 0 {
-					monstersToKill = append(monstersToKill, mid)
-					g.spawnItemAt(mon.X, mon.Y)
-				}
-
-				break
-			}
+		for _, mon := range m.Monsters {
+			snap.Monsters = append(snap.Monsters, &Entity{
+				ID:    mon.ID,
+				X:     mon.X,
+				Y:     mon.Y,
+				Type:  int(mon.Type),
+				HP:    mon.HP,
+				MaxHP: mon.MaxHP,
+			})
 		}
-	}
+		for _, proj := range m.Projectiles {
+			snap.Projectiles = append(snap.Projectiles, &Entity{ID: proj.ID, X: proj.X, Y: proj.Y})
+		}
 
-	for pid := range projToRemove {
-		delete(g.projectiles, pid)
-	}
-	for _, mid := range monstersToKill {
-		delete(g.monsters, mid)
-	}
-
-	const collectRadius = 15.0
-	for _, p := range g.players {
-		for _, item := range g.items {
-			dx := p.X - item.X
-			dy := p.Y - item.Y
-			if dx*dx+dy*dy < collectRadius*collectRadius {
-				g.collectItem(p, item)
+		data, err := json.Marshal(snap)
+		if err == nil {
+			for _, p := range mapPlayers {
+				p.Send(data)
 			}
 		}
 	}
 }
 
-func (g *Game) SpawnMonster() {
-	g.lock.Lock()
-	defer g.lock.Unlock()
+func (g *Game) checkMapTransitions(p *Player) {
+	const edge = 20.0
+	width := 800.0
+	height := 600.0
 
-	g.lastMonID++
-	m := &Monster{
-		ID:    g.lastMonID,
-		X:     50 + rand.Float64()*700,
-		Y:     50 + rand.Float64()*500,
-		Type:  MonsterType(rand.Intn(3)),
-		HP:    50,
-		MaxHP: 50,
+	centerX := width / 2
+	centerY := height / 2
+
+	if p.MapID == "town" {
+		if p.X > width-edge {
+			g.switchMap(p, "field", centerX, centerY)
+		}
+	} else if p.MapID == "field" {
+		if p.X < edge {
+			g.switchMap(p, "town", centerX, centerY)
+		} else if p.X > width-edge {
+			g.switchMap(p, "dungeon", centerX, centerY)
+		}
+	} else if p.MapID == "dungeon" {
+		if p.X < edge {
+			g.switchMap(p, "field", centerX, centerY)
+		}
 	}
-	g.monsters[m.ID] = m
 }
 
-func (g *Game) spawnItemAt(x, y float64) {
-	g.lastItemID++
-	item := &Item{
-		ID: g.lastItemID,
-		X:  x,
-		Y:  y,
-	}
-	g.items[item.ID] = item
+func (g *Game) switchMap(p *Player, targetMap string, targetX, targetY float64) {
+	p.MapID = targetMap
+	p.X = targetX
+	p.Y = targetY
 
-	msg := MsgItemSpawn{
-		Type: "ITEM_SPAWN",
-		ID:   item.ID,
-		X:    item.X,
-		Y:    item.Y,
-	}
-
-	// Use SendJSON via marshaling helper locally or just marshal here
-	// Since we are inside Game, we iterate players.
-	// We can use a helper broadcastJSON
-	g.broadcastJSON(msg)
-}
-
-func (g *Game) collectItem(p *Player, item *Item) {
-	delete(g.items, item.ID)
-	p.Gold += 100
-
-	p.SendJSON(MsgGoldUpdate{
-		Type:   "GOLD_UPDATE",
-		Amount: p.Gold,
+	p.SendJSON(MsgMapSwitch{
+		Type: "MAP_SWITCH",
+		Map:  targetMap,
+		X:    targetX,
+		Y:    targetY,
 	})
 
-	g.broadcastJSON(MsgItemRemove{
-		Type: "ITEM_REMOVE",
-		ID:   item.ID,
-	})
+	if m, ok := g.maps[targetMap]; ok {
+		for _, item := range m.Items {
+			p.SendJSON(MsgItemSpawn{
+				Type: "ITEM_SPAWN",
+				ID:   item.ID,
+				X:    item.X,
+				Y:    item.Y,
+			})
+		}
+	}
 }
 
 func (g *Game) AddPlayer(conn Connection) *Player {
@@ -282,13 +186,15 @@ func (g *Game) AddPlayer(conn Connection) *Player {
 		Gold:    p.Gold,
 	})
 
-	for _, item := range g.items {
-		p.SendJSON(MsgItemSpawn{
-			Type: "ITEM_SPAWN",
-			ID:   item.ID,
-			X:    item.X,
-			Y:    item.Y,
-		})
+	if m, ok := g.maps[p.MapID]; ok {
+		for _, item := range m.Items {
+			p.SendJSON(MsgItemSpawn{
+				Type: "ITEM_SPAWN",
+				ID:   item.ID,
+				X:    item.X,
+				Y:    item.Y,
+			})
+		}
 	}
 
 	return p

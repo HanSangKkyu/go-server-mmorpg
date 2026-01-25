@@ -9,6 +9,10 @@ const statsEl = document.createElement('div');
 statsEl.innerHTML = 'HP: -/- | ATK: - | DEF: - | SPD: - | GOLD: 0';
 uiEl.appendChild(statsEl);
 
+const mapNameEl = document.createElement('div');
+mapNameEl.innerHTML = 'Map: town';
+uiEl.appendChild(mapNameEl);
+
 const players = new Map();
 const items = new Map();
 const monsters = new Map();
@@ -139,6 +143,23 @@ function handleMessage(msg) {
 
         case 'LEAVE':
             players.delete(msg.id);
+            break;
+
+        case 'MAP_SWITCH':
+            items.clear();
+            monsters.clear();
+            projectiles.clear();
+            players.forEach((_, id) => {
+                if (id !== myId) players.delete(id);
+            });
+            
+            const me = players.get(myId);
+            if (me) {
+                me.x = msg.x;
+                me.y = msg.y;
+            }
+            
+            mapNameEl.textContent = `Map: ${msg.map}`;
             break;
     }
 }

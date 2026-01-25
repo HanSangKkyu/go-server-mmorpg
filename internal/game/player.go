@@ -13,6 +13,7 @@ type Connection interface {
 
 type Player struct {
 	ID        int
+	MapID     string
 	Conn      Connection
 	X         float64
 	Y         float64
@@ -32,9 +33,10 @@ type Player struct {
 func NewPlayer(id int, conn Connection) *Player {
 	return &Player{
 		ID:        id,
+		MapID:     "town",
 		Conn:      conn,
-		X:         0,
-		Y:         0,
+		X:         400,
+		Y:         300,
 		DirX:      0,
 		DirY:      1,
 		Inventory: make([]*Item, 0),

@@ -10,8 +10,8 @@ func TestNewPlayer(t *testing.T) {
 	if p.ID != 1 {
 		t.Errorf("Expected player ID 1, got %d", p.ID)
 	}
-	if p.X != 0 || p.Y != 0 {
-		t.Errorf("Expected initial position (0,0), got (%.2f,%.2f)", p.X, p.Y)
+	if p.X != 400 || p.Y != 300 {
+		t.Errorf("Expected initial position (400,300), got (%.2f,%.2f)", p.X, p.Y)
 	}
 }
 
