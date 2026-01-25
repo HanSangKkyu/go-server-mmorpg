@@ -119,6 +119,7 @@ func (g *Game) Update() {
 		}
 
 		m.UpdateProjectiles()
+		m.UpdateItems(mapPlayers)
 		m.UpdatePlayerShooting(mapPlayers)
 		m.CheckCollisions(mapPlayers)
 

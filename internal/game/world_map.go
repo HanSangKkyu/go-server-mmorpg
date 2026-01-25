@@ -65,6 +65,29 @@ func (m *WorldMap) UpdateProjectiles() {
 	}
 }
 
+func (m *WorldMap) UpdateItems(players []*Player) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	itemsToRemove := []int{}
+	now := time.Now()
+
+	for id, item := range m.Items {
+		if now.Sub(item.CreatedAt) > 2*time.Minute {
+			itemsToRemove = append(itemsToRemove, id)
+		}
+	}
+
+	for _, id := range itemsToRemove {
+		delete(m.Items, id)
+		msg := MsgItemRemove{
+			Type: "ITEM_REMOVE",
+			ID:   id,
+		}
+		m.broadcastJSON(msg, players)
+	}
+}
+
 func (m *WorldMap) UpdatePlayerShooting(players []*Player) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -118,6 +141,10 @@ func (m *WorldMap) UpdatePlayerShooting(players []*Player) {
 func (m *WorldMap) SpawnMonster() {
 	m.lock.Lock()
 	defer m.lock.Unlock()
+
+	if len(m.Monsters) >= 10 {
+		return
+	}
 
 	m.lastMonID++
 	mon := &Monster{
@@ -180,9 +207,10 @@ func (m *WorldMap) CheckCollisions(players []*Player) {
 func (m *WorldMap) spawnItemAt(x, y float64, players []*Player) {
 	m.lastItemID++
 	item := &Item{
-		ID: m.lastItemID,
-		X:  x,
-		Y:  y,
+		ID:        m.lastItemID,
+		X:         x,
+		Y:         y,
+		CreatedAt: time.Now(),
 	}
 	m.Items[item.ID] = item
 

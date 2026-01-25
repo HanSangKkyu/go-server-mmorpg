@@ -1,9 +1,12 @@
 package game
 
+import "time"
+
 type Item struct {
-	ID int
-	X  float64
-	Y  float64
+	ID        int
+	X         float64
+	Y         float64
+	CreatedAt time.Time
 }
 
 type MonsterType int
