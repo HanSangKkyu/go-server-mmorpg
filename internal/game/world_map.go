@@ -158,6 +158,39 @@ func (m *WorldMap) SpawnMonster() {
 	m.Monsters[mon.ID] = mon
 }
 
+func (m *WorldMap) UpdateMonsters(players []*Player) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	const monsterSpeed = 2.0
+
+	for _, mon := range m.Monsters {
+		var target *Player
+		minDistSq := math.MaxFloat64
+
+		for _, p := range players {
+			dx := p.X - mon.X
+			dy := p.Y - mon.Y
+			distSq := dx*dx + dy*dy
+			if distSq < minDistSq {
+				minDistSq = distSq
+				target = p
+			}
+		}
+
+		if target != nil {
+			dx := target.X - mon.X
+			dy := target.Y - mon.Y
+			dist := math.Sqrt(dx*dx + dy*dy)
+
+			if dist > monsterSpeed {
+				mon.X += (dx / dist) * monsterSpeed
+				mon.Y += (dy / dist) * monsterSpeed
+			}
+		}
+	}
+}
+
 func (m *WorldMap) CheckCollisions(players []*Player) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
