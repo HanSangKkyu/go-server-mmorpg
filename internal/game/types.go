@@ -1,5 +1,15 @@
 package game
 
+// Portal represents a teleportation gate
+type Portal struct {
+	ID        int
+	X         float64
+	Y         float64
+	TargetMap string
+	TargetX   float64
+	TargetY   float64
+}
+
 type Item struct {
 	ID int
 	X  float64

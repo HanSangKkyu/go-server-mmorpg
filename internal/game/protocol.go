@@ -21,12 +21,20 @@ type Entity struct {
 	MaxHP int     `json:"max_hp,omitempty"`
 }
 
+type PortalEntity struct {
+	ID        int     `json:"id"`
+	X         float64 `json:"x"`
+	Y         float64 `json:"y"`
+	TargetMap string  `json:"target_map"`
+}
+
 // MsgSnap - Server -> Client
 type MsgSnap struct {
-	Type        string    `json:"type"`
-	Players     []*Entity `json:"players"`
-	Monsters    []*Entity `json:"monsters"`
-	Projectiles []*Entity `json:"projectiles"`
+	Type        string          `json:"type"`
+	Players     []*Entity       `json:"players"`
+	Monsters    []*Entity       `json:"monsters"`
+	Projectiles []*Entity       `json:"projectiles"`
+	Portals     []*PortalEntity `json:"portals"`
 }
 
 // MsgItemSpawn - Server -> Client
@@ -53,6 +61,12 @@ type MsgGoldUpdate struct {
 type MsgLeave struct {
 	Type string `json:"type"`
 	ID   int    `json:"id"`
+}
+
+// MsgMapChange - Server -> Client
+type MsgMapChange struct {
+	Type    string `json:"type"`
+	MapName string `json:"map_name"`
 }
 
 // MsgMove - Client -> Server
