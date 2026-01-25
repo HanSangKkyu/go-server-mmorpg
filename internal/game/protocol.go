@@ -16,7 +16,7 @@ type Entity struct {
 	ID    int     `json:"id"`
 	X     float64 `json:"x"`
 	Y     float64 `json:"y"`
-	Type  int     `json:"type,omitempty"`
+	Type  int     `json:"type"`
 	HP    int     `json:"hp,omitempty"`
 	MaxHP int     `json:"max_hp,omitempty"`
 }

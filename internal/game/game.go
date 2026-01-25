@@ -34,6 +34,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) Start() {
+	rand.Seed(time.Now().UnixNano())
 	ticker := time.NewTicker(time.Millisecond * 33)
 	defer ticker.Stop()
 
@@ -80,7 +81,7 @@ func (g *Game) Update() {
 			ID:    m.ID,
 			X:     m.X,
 			Y:     m.Y,
-			Type:  m.Type,
+			Type:  int(m.Type),
 			HP:    m.HP,
 			MaxHP: m.MaxHP,
 		})
@@ -217,7 +218,7 @@ func (g *Game) SpawnMonster() {
 		ID:    g.lastMonID,
 		X:     50 + rand.Float64()*700,
 		Y:     50 + rand.Float64()*500,
-		Type:  rand.Intn(3),
+		Type:  MonsterType(rand.Intn(3)),
 		HP:    50,
 		MaxHP: 50,
 	}

@@ -22,10 +22,10 @@ function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.hostname;
     const wsUrl = `${protocol}//${host}:9000/ws`;
-    
+
     console.log(`Connecting to ${wsUrl}`);
     statusEl.textContent = 'Connecting...';
-    
+
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -200,10 +200,10 @@ function draw() {
     // Monsters (Colored Squares based on Type)
     monsters.forEach((m) => {
         // 0: Water (Blue), 1: Fire (Red), 2: Grass (Green)
-        if (m.type === 0) ctx.fillStyle = '#3498db'; 
-        else if (m.type === 1) ctx.fillStyle = '#e74c3c'; 
-        else ctx.fillStyle = '#2ecc71'; 
-        
+        if (m.type === 0) ctx.fillStyle = 'blue';
+        else if (m.type === 1) ctx.fillStyle = 'red';
+        else if (m.type === 2) ctx.fillStyle = 'green';
+
         ctx.fillRect(m.x - 10, m.y - 10, 20, 20);
 
         // Health Bar
@@ -211,10 +211,10 @@ function draw() {
             const width = 30;
             const height = 4;
             const hpPct = Math.max(0, m.hp / m.maxHp);
-            
+
             ctx.fillStyle = '#333';
             ctx.fillRect(m.x - 15, m.y - 20, width, height);
-            
+
             ctx.fillStyle = '#f00';
             ctx.fillRect(m.x - 15, m.y - 20, width * hpPct, height);
         }
@@ -231,11 +231,11 @@ function draw() {
     // Players (Circles)
     players.forEach((p, id) => {
         ctx.fillStyle = id === myId ? '#ff0' : (p.color || '#fff');
-        
+
         ctx.beginPath();
         ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
         ctx.fill();
-        
+
         ctx.fillStyle = '#fff';
         ctx.font = '10px Arial';
         ctx.textAlign = 'center';

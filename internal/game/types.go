@@ -6,11 +6,19 @@ type Item struct {
 	Y  float64
 }
 
+type MonsterType int
+
+const (
+	MonsterTypeWater MonsterType = iota
+	MonsterTypeFire
+	MonsterTypeGrass
+)
+
 type Monster struct {
 	ID    int
 	X     float64
 	Y     float64
-	Type  int // 0: Water, 1: Fire, 2: Grass
+	Type  MonsterType
 	HP    int
 	MaxHP int
 }
