@@ -125,6 +125,13 @@ func (m *WorldMap) UpdatePlayerShooting(players []*Player) {
 			p.LastShoot = now
 			m.lastProjID++
 
+			projType := 0
+			for _, item := range p.Equipment {
+				if item != nil && item.ProjectileType > 0 {
+					projType = item.ProjectileType
+				}
+			}
+
 			proj := &Projectile{
 				ID:      m.lastProjID,
 				OwnerID: p.ID,
@@ -132,6 +139,7 @@ func (m *WorldMap) UpdatePlayerShooting(players []*Player) {
 				Y:       p.Y,
 				VX:      vx,
 				VY:      vy,
+				Type:    projType,
 			}
 			m.Projectiles[proj.ID] = proj
 		}
@@ -195,6 +203,12 @@ func (m *WorldMap) CheckCollisions(players []*Player) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
+	// Build a map for faster player lookup
+	playerMap := make(map[int]*Player)
+	for _, p := range players {
+		playerMap[p.ID] = p
+	}
+
 	projToRemove := make(map[int]bool)
 	monstersToKill := []int{}
 
@@ -206,6 +220,9 @@ func (m *WorldMap) CheckCollisions(players []*Player) {
 				projToRemove[pid] = true
 
 				damage := 10
+				if owner, ok := playerMap[proj.OwnerID]; ok {
+					damage = owner.Attack
+				}
 				mon.HP -= damage
 
 				if mon.HP <= 0 {
@@ -239,31 +256,62 @@ func (m *WorldMap) CheckCollisions(players []*Player) {
 
 func (m *WorldMap) spawnItemAt(x, y float64, players []*Player) {
 	m.lastItemID++
+
+	randVal := rand.Float64()
+	var iType ItemType
+	var name string
+	var atk, def, projType int
+
+	if randVal < 0.5 {
+		iType = ItemTypeGold
+		name = "Gold"
+	} else if randVal < 0.75 {
+		iType = ItemTypeWeapon
+		name = "Sword"
+		atk = 5 + rand.Intn(10)
+		projType = 1 + rand.Intn(2)
+	} else {
+		iType = ItemTypeArmor
+		name = "Shield"
+		def = 2 + rand.Intn(5)
+	}
+
 	item := &Item{
-		ID:        m.lastItemID,
-		X:         x,
-		Y:         y,
-		CreatedAt: time.Now(),
+		ID:             m.lastItemID,
+		X:              x,
+		Y:              y,
+		CreatedAt:      time.Now(),
+		Type:           iType,
+		Name:           name,
+		Attack:         atk,
+		Defense:        def,
+		ProjectileType: projType,
 	}
 	m.Items[item.ID] = item
 
 	msg := MsgItemSpawn{
-		Type: "ITEM_SPAWN",
-		ID:   item.ID,
-		X:    item.X,
-		Y:    item.Y,
+		Type:     "ITEM_SPAWN",
+		ID:       item.ID,
+		ItemType: int(iType),
+		X:        item.X,
+		Y:        item.Y,
 	}
 	m.broadcastJSON(msg, players)
 }
 
 func (m *WorldMap) collectItem(p *Player, item *Item, players []*Player) {
 	delete(m.Items, item.ID)
-	p.Gold += 100
 
-	p.SendJSON(MsgGoldUpdate{
-		Type:   "GOLD_UPDATE",
-		Amount: p.Gold,
-	})
+	if item.Type == ItemTypeGold {
+		p.Gold += 100
+		p.SendJSON(MsgGoldUpdate{
+			Type:   "GOLD_UPDATE",
+			Amount: p.Gold,
+		})
+	} else {
+		p.Inventory = append(p.Inventory, item)
+		p.SendInventory()
+	}
 
 	m.broadcastJSON(MsgItemRemove{
 		Type: "ITEM_REMOVE",

@@ -4,6 +4,149 @@ const statusEl = document.getElementById('status');
 const myIdEl = document.getElementById('myId');
 const uiEl = document.getElementById('ui');
 
+const gameContainer = document.getElementById('game-container');
+
+const style = document.createElement('style');
+style.textContent = `
+    .panel {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid #555;
+        padding: 10px;
+        color: white;
+        font-family: monospace;
+        pointer-events: auto;
+    }
+    .inventory-panel {
+        bottom: 10px;
+        right: 10px;
+        width: 200px;
+        height: 150px;
+    }
+    .equipment-panel {
+        bottom: 10px;
+        left: 10px;
+        width: 200px;
+        height: 150px;
+    }
+    .slot-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 5px;
+        margin-top: 5px;
+    }
+    .slot {
+        width: 30px;
+        height: 30px;
+        border: 1px solid #777;
+        background: #222;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        font-size: 10px;
+        text-align: center;
+        overflow: hidden;
+    }
+    .slot:hover {
+        border-color: #fff;
+    }
+    .slot.filled {
+        background: #444;
+    }
+    .item-gold { color: gold; }
+    .item-weapon { color: cyan; }
+    .item-armor { color: violet; }
+`;
+document.head.appendChild(style);
+
+const inventoryEl = document.createElement('div');
+inventoryEl.className = 'panel inventory-panel';
+inventoryEl.innerHTML = '<div>Inventory</div><div class="slot-grid" id="inv-grid"></div>';
+gameContainer.appendChild(inventoryEl);
+
+const equipmentEl = document.createElement('div');
+equipmentEl.className = 'panel equipment-panel';
+equipmentEl.innerHTML = '<div>Equipment (Click to Unequip)</div><div class="slot-grid" id="equip-grid"></div>';
+gameContainer.appendChild(equipmentEl);
+
+let inventory = [];
+let equipment = {};
+
+function renderInventory() {
+    const grid = document.getElementById('inv-grid');
+    grid.innerHTML = '';
+    
+    for (let i = 0; i < 20; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        
+        if (i < inventory.length) {
+            const item = inventory[i];
+            slot.classList.add('filled');
+            slot.textContent = item.Name ? item.Name.substring(0, 4) : '???';
+            slot.title = `${item.Name} (ATK:${item.Attack} DEF:${item.Defense})`;
+            
+            if (item.Type === 1) slot.style.color = 'cyan';
+            if (item.Type === 2) slot.style.color = 'violet';
+
+            slot.onclick = () => {
+                let targetSlot = -1;
+                for (let s = 0; s < 5; s++) {
+                    if (!equipment[s]) {
+                        targetSlot = s;
+                        break;
+                    }
+                }
+                if (targetSlot === -1) targetSlot = 0;
+
+                console.log(`Equipping item ${item.ID} to slot ${targetSlot}`);
+                ws.send(JSON.stringify({
+                    type: "EQUIP",
+                    item_id: item.ID,
+                    slot: targetSlot
+                }));
+            };
+        }
+        
+        grid.appendChild(slot);
+    }
+}
+
+function renderEquipment() {
+    const grid = document.getElementById('equip-grid');
+    grid.innerHTML = '';
+    
+    for (let i = 0; i < 5; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        
+        const item = equipment[i];
+        if (item) {
+            slot.classList.add('filled');
+            slot.textContent = item.Name ? item.Name.substring(0, 4) : 'Item';
+            slot.title = `${item.Name}`;
+            
+             if (item.Type === 1) slot.style.color = 'cyan';
+             if (item.Type === 2) slot.style.color = 'violet';
+
+            slot.onclick = () => {
+                console.log(`Unequipping slot ${i}`);
+                ws.send(JSON.stringify({
+                    type: "UNEQUIP",
+                    slot: i
+                }));
+            };
+        } else {
+            slot.textContent = i + 1;
+            slot.style.color = '#555';
+        }
+        
+        grid.appendChild(slot);
+    }
+}
+
+
 // Stats UI
 const statsEl = document.createElement('div');
 statsEl.innerHTML = 'HP: -/- | ATK: - | DEF: - | SPD: - | GOLD: 0';
@@ -102,19 +245,43 @@ function handleMessage(msg) {
                 msg.projectiles.forEach(p => {
                     seenProjs.add(p.id);
                     if (!projectiles.has(p.id)) {
-                        projectiles.set(p.id, { x: p.x, y: p.y });
+                        projectiles.set(p.id, { x: p.x, y: p.y, type: p.type });
                     } else {
                         const existing = projectiles.get(p.id);
                         existing.x = p.x;
                         existing.y = p.y;
+                        existing.type = p.type;
                     }
                 });
             }
             for (const [id] of projectiles) { if (!seenProjs.has(id)) projectiles.delete(id); }
             break;
 
+        case 'INVENTORY':
+            inventory = msg.items || [];
+            renderInventory();
+            break;
+
+        case 'EQUIPMENT':
+            equipment = msg.items || {};
+            renderEquipment();
+            break;
+
+        case 'STATS':
+            // Update stats
+             myStats = {
+                hp: msg.hp,
+                maxHp: msg.max_hp,
+                atk: msg.attack,
+                def: msg.defense,
+                speed: msg.speed,
+                gold: msg.gold
+            };
+            updateStatsUI();
+            break;
+
         case 'ITEM_SPAWN':
-            items.set(msg.id, { x: msg.x, y: msg.y });
+            items.set(msg.id, { x: msg.x, y: msg.y, type: msg.item_type });
             break;
 
         case 'ITEM_REMOVE':
@@ -215,9 +382,12 @@ function draw() {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Items (Gold Squares)
-    ctx.fillStyle = '#ffd700';
     items.forEach((item) => {
+        if (item.type === 0) ctx.fillStyle = '#ffd700';
+        else if (item.type === 1) ctx.fillStyle = 'cyan';
+        else if (item.type === 2) ctx.fillStyle = 'violet';
+        else ctx.fillStyle = '#fff';
+
         ctx.fillRect(item.x - 5, item.y - 5, 10, 10);
     });
 
@@ -257,9 +427,11 @@ function draw() {
         }
     });
 
-    // Projectiles (Yellow Dots)
-    ctx.fillStyle = '#ff0';
     projectiles.forEach((p) => {
+        if (p.type === 1) ctx.fillStyle = 'orange';
+        else if (p.type === 2) ctx.fillStyle = 'aqua';
+        else ctx.fillStyle = '#ff0';
+
         ctx.beginPath();
         ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
         ctx.fill();

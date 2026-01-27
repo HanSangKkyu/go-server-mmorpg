@@ -31,10 +31,11 @@ type MsgSnap struct {
 
 // MsgItemSpawn - Server -> Client
 type MsgItemSpawn struct {
-	Type string  `json:"type"`
-	ID   int     `json:"id"`
-	X    float64 `json:"x"`
-	Y    float64 `json:"y"`
+	Type     string  `json:"type"`
+	ID       int     `json:"id"`
+	ItemType int     `json:"item_type"` // 0: Gold, 1: Weapon...
+	X        float64 `json:"x"`
+	Y        float64 `json:"y"`
 }
 
 // MsgItemRemove - Server -> Client
@@ -69,6 +70,31 @@ type MsgMapSwitch struct {
 	X       float64      `json:"x"`
 	Y       float64      `json:"y"`
 	Portals []PortalData `json:"portals"`
+}
+
+// MsgInventory - Server -> Client
+type MsgInventory struct {
+	Type  string  `json:"type"`
+	Items []*Item `json:"items"`
+}
+
+// MsgEquipment - Server -> Client
+type MsgEquipment struct {
+	Type  string        `json:"type"`
+	Items map[int]*Item `json:"items"` // Slot -> Item
+}
+
+// MsgEquip - Client -> Server
+type MsgEquip struct {
+	Type   string `json:"type"`
+	ItemID int    `json:"item_id"`
+	Slot   int    `json:"slot"`
+}
+
+// MsgUnequip - Client -> Server
+type MsgUnequip struct {
+	Type string `json:"type"`
+	Slot int    `json:"slot"`
 }
 
 // MsgMove - Client -> Server

@@ -14,12 +14,31 @@ func HandleCommand(player *game.Player, text string) {
 	}
 
 	// Try parsing as JSON first
-	var move game.MsgMove
-	if err := json.Unmarshal([]byte(text), &move); err == nil {
-		if move.Type == "MOVE" {
-			player.Move(move.X, move.Y)
+	var msg map[string]interface{}
+	if err := json.Unmarshal([]byte(text), &msg); err == nil {
+		msgType, ok := msg["type"].(string)
+		if !ok {
 			return
 		}
+
+		switch msgType {
+		case "MOVE":
+			var move game.MsgMove
+			if err := json.Unmarshal([]byte(text), &move); err == nil {
+				player.Move(move.X, move.Y)
+			}
+		case "EQUIP":
+			var equip game.MsgEquip
+			if err := json.Unmarshal([]byte(text), &equip); err == nil {
+				player.Equip(equip.ItemID, equip.Slot)
+			}
+		case "UNEQUIP":
+			var unequip game.MsgUnequip
+			if err := json.Unmarshal([]byte(text), &unequip); err == nil {
+				player.Unequip(unequip.Slot)
+			}
+		}
+		return
 	}
 
 	// Fallback for debugging/legacy (optional)

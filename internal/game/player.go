@@ -22,6 +22,7 @@ type Player struct {
 	LastShoot     time.Time
 	LastPortalUse time.Time
 	Inventory     []*Item
+	Equipment     [5]*Item
 
 	HP      int
 	MaxHP   int
@@ -49,6 +50,105 @@ func NewPlayer(id int, conn Connection) *Player {
 		Speed:   5.0,
 		Gold:    0,
 	}
+}
+
+func (p *Player) Equip(itemID int, slot int) {
+	if slot < 0 || slot >= 5 {
+		return
+	}
+
+	var itemIdx int = -1
+	for i, it := range p.Inventory {
+		if it.ID == itemID {
+			itemIdx = i
+			break
+		}
+	}
+
+	if itemIdx == -1 {
+		return
+	}
+
+	item := p.Inventory[itemIdx]
+
+	if p.Equipment[slot] != nil {
+		p.Unequip(slot)
+	}
+
+	p.Inventory = append(p.Inventory[:itemIdx], p.Inventory[itemIdx+1:]...)
+
+	p.Equipment[slot] = item
+	p.RecalculateStats()
+	p.SendInventory()
+	p.SendEquipment()
+}
+
+func (p *Player) Unequip(slot int) {
+	if slot < 0 || slot >= 5 {
+		return
+	}
+
+	item := p.Equipment[slot]
+	if item == nil {
+		return
+	}
+
+	p.Equipment[slot] = nil
+	p.Inventory = append(p.Inventory, item)
+	p.RecalculateStats()
+	p.SendInventory()
+	p.SendEquipment()
+}
+
+func (p *Player) RecalculateStats() {
+	atk := 10
+	def := 0
+	spd := 5.0
+
+	for _, item := range p.Equipment {
+		if item != nil {
+			atk += item.Attack
+			def += item.Defense
+			if item.Speed > 0 {
+				spd += item.Speed
+			}
+		}
+	}
+
+	p.Attack = atk
+	p.Defense = def
+	p.Speed = spd
+
+	p.SendJSON(MsgWelcome{
+		Type:    "STATS",
+		ID:      p.ID,
+		HP:      p.HP,
+		MaxHP:   p.MaxHP,
+		Attack:  p.Attack,
+		Defense: p.Defense,
+		Speed:   p.Speed,
+		Gold:    p.Gold,
+	})
+}
+
+func (p *Player) SendInventory() {
+	p.SendJSON(MsgInventory{
+		Type:  "INVENTORY",
+		Items: p.Inventory,
+	})
+}
+
+func (p *Player) SendEquipment() {
+	equipMap := make(map[int]*Item)
+	for i, it := range p.Equipment {
+		if it != nil {
+			equipMap[i] = it
+		}
+	}
+	p.SendJSON(MsgEquipment{
+		Type:  "EQUIPMENT",
+		Items: equipMap,
+	})
 }
 
 func (p *Player) Move(x, y float64) {

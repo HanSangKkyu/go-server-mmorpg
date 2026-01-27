@@ -206,10 +206,11 @@ func (g *Game) switchMap(p *Player, targetMap string, targetX, targetY float64) 
 	if m, ok := g.maps[targetMap]; ok {
 		for _, item := range m.Items {
 			p.SendJSON(MsgItemSpawn{
-				Type: "ITEM_SPAWN",
-				ID:   item.ID,
-				X:    item.X,
-				Y:    item.Y,
+				Type:     "ITEM_SPAWN",
+				ID:       item.ID,
+				ItemType: int(item.Type),
+				X:        item.X,
+				Y:        item.Y,
 			})
 		}
 	}
@@ -258,10 +259,11 @@ func (g *Game) AddPlayer(conn Connection) *Player {
 
 		for _, item := range m.Items {
 			p.SendJSON(MsgItemSpawn{
-				Type: "ITEM_SPAWN",
-				ID:   item.ID,
-				X:    item.X,
-				Y:    item.Y,
+				Type:     "ITEM_SPAWN",
+				ID:       item.ID,
+				ItemType: int(item.Type),
+				X:        item.X,
+				Y:        item.Y,
 			})
 		}
 	}
