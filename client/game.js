@@ -348,6 +348,67 @@ window.addEventListener('keyup', (e) => {
     keys[e.key] = false;
 });
 
+const joystickZone = document.getElementById('joystick-zone');
+const joystickHandle = document.getElementById('joystick-handle');
+const joystickBase = document.getElementById('joystick-base');
+
+let joystickActive = false;
+let joystickVector = { x: 0, y: 0 };
+const maxRadius = 35;
+
+function handleJoystickStart(e) {
+    e.preventDefault();
+    joystickActive = true;
+    handleJoystickMove(e);
+}
+
+function handleJoystickMove(e) {
+    if (!joystickActive) return;
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    const rect = joystickBase.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    let dx = clientX - centerX;
+    let dy = clientY - centerY;
+    
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > maxRadius) {
+        const ratio = maxRadius / distance;
+        dx *= ratio;
+        dy *= ratio;
+    }
+    
+    joystickHandle.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    
+    joystickVector.x = dx / maxRadius;
+    joystickVector.y = dy / maxRadius;
+}
+
+function handleJoystickEnd() {
+    joystickActive = false;
+    joystickVector = { x: 0, y: 0 };
+    joystickHandle.style.transform = `translate(-50%, -50%)`;
+}
+
+if (joystickZone) {
+    joystickZone.addEventListener('mousedown', handleJoystickStart);
+    joystickZone.addEventListener('touchstart', handleJoystickStart, { passive: false });
+
+    window.addEventListener('mousemove', handleJoystickMove);
+    window.addEventListener('touchmove', (e) => {
+        if(joystickActive) e.preventDefault();
+        handleJoystickMove(e);
+    }, { passive: false });
+
+    window.addEventListener('mouseup', handleJoystickEnd);
+    window.addEventListener('touchend', handleJoystickEnd);
+}
+
 function update() {
     if (!myId || !ws || ws.readyState !== WebSocket.OPEN) return;
 
@@ -362,6 +423,12 @@ function update() {
         if (keys['ArrowDown'] || keys['s']) { newY += speed; moved = true; }
         if (keys['ArrowLeft'] || keys['a']) { newX -= speed; moved = true; }
         if (keys['ArrowRight'] || keys['d']) { newX += speed; moved = true; }
+
+        if (joystickVector.x !== 0 || joystickVector.y !== 0) {
+            newX += joystickVector.x * speed;
+            newY += joystickVector.y * speed;
+            moved = true;
+        }
 
         if (newX < 0) newX = 0;
         if (newY < 0) newY = 0;
@@ -466,6 +533,21 @@ function getRandomColor() {
     }
     return color;
 }
+
+function resizeCanvas() {
+    const aspect = 800 / 600;
+    
+    if (window.innerHeight > window.innerWidth) {
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = (window.innerWidth / aspect) + 'px';
+    } else {
+        canvas.style.height = window.innerHeight + 'px';
+        canvas.style.width = (window.innerHeight * aspect) + 'px';
+    }
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
 connect();
 loop();

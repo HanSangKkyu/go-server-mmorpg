@@ -23,6 +23,7 @@
             border: 2px solid #555;
             background-color: #1a1a1a;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            box-sizing: border-box;
         }
         #ui {
             position: absolute;
@@ -33,6 +34,37 @@
             border-radius: 5px;
             pointer-events: none;
         }
+        #joystick-zone {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            z-index: 100;
+            touch-action: none;
+            user-select: none;
+        }
+        #joystick-base {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: relative;
+            box-sizing: border-box;
+        }
+        #joystick-handle {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body>
@@ -42,6 +74,11 @@
             <div>Status: <span id="status">Connecting...</span></div>
             <div>My ID: <span id="myId">Unknown</span></div>
             <div>Use Arrow Keys or WASD to Move</div>
+        </div>
+    </div>
+    <div id="joystick-zone">
+        <div id="joystick-base">
+            <div id="joystick-handle"></div>
         </div>
     </div>
     <script src="game.js"></script>
