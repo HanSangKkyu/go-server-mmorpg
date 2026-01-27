@@ -186,16 +186,38 @@ func (m *WorldMap) UpdateMonsters(players []*Player) {
 			}
 		}
 
+		vx, vy := 0.0, 0.0
+
 		if target != nil {
 			dx := target.X - mon.X
 			dy := target.Y - mon.Y
 			dist := math.Sqrt(dx*dx + dy*dy)
 
 			if dist > monsterSpeed {
-				mon.X += (dx / dist) * monsterSpeed
-				mon.Y += (dy / dist) * monsterSpeed
+				vx = (dx / dist) * monsterSpeed
+				vy = (dy / dist) * monsterSpeed
 			}
 		}
+
+		for _, other := range m.Monsters {
+			if mon == other {
+				continue
+			}
+			dx := mon.X - other.X
+			dy := mon.Y - other.Y
+			distSq := dx*dx + dy*dy
+			const collisionDistance = 40.0
+
+			if distSq < collisionDistance*collisionDistance && distSq > 0 {
+				dist := math.Sqrt(distSq)
+				push := (collisionDistance - dist) / dist
+				vx += dx * push * 0.1
+				vy += dy * push * 0.1
+			}
+		}
+
+		mon.X += vx
+		mon.Y += vy
 	}
 }
 
