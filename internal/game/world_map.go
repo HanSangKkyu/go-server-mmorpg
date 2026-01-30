@@ -123,30 +123,27 @@ func (m *WorldMap) UpdatePlayerShooting(players []*Player) {
 			}
 
 			p.LastShoot = now
-			m.lastProjID++
 
-			var projType ProjectileType = ProjectileTypeDefault
+			projectilesToFire := []ProjectileType{ProjectileTypeDefault}
+
 			for _, item := range p.Equipment {
-				if item != nil && item.ProjectileType > ProjectileTypeDefault {
-					projType = item.ProjectileType
+				if item != nil && item.Type == ItemTypeWeapon {
+					pType := item.ProjectileType
+					if pType == 0 {
+						pType = ProjectileTypeDefault
+					}
+					projectilesToFire = append(projectilesToFire, pType)
 				}
 			}
 
-			// Base angles for projectiles (in radians)
-			angles := []float64{0}
+			count := len(projectilesToFire)
+			step := 0.2
+			startAngle := -float64(count-1) * step / 2.0
 
-			switch projType {
-			case ProjectileTypeFire:
-				angles = []float64{-0.2, 0, 0.2}
-			case ProjectileTypeIce:
-				angles = []float64{-0.1, 0.1}
-			}
+			for i, pType := range projectilesToFire {
+				angle := startAngle + float64(i)*step
 
-			m.lastProjID--
-
-			for _, angle := range angles {
 				m.lastProjID++
-
 				nvx := vx*math.Cos(angle) - vy*math.Sin(angle)
 				nvy := vx*math.Sin(angle) + vy*math.Cos(angle)
 
@@ -157,11 +154,10 @@ func (m *WorldMap) UpdatePlayerShooting(players []*Player) {
 					Y:       p.Y,
 					VX:      nvx,
 					VY:      nvy,
-					Type:    projType,
+					Type:    pType,
 				}
 				m.Projectiles[proj.ID] = proj
 			}
-
 		}
 	}
 }
@@ -321,7 +317,7 @@ func (m *WorldMap) spawnItemAt(x, y float64, players []*Player) {
 		iType = ItemTypeWeapon
 		name = "Sword"
 		atk = 5 + rand.Intn(10)
-		projType = ProjectileTypeGrass
+		projType = ProjectileType(1 + rand.Intn(3))
 	} else {
 		iType = ItemTypeArmor
 		name = "Shield"

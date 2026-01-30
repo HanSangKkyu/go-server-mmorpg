@@ -83,7 +83,7 @@ function getItemTooltip(item) {
     if (item.ProjectileType) {
         const types = ['Default', 'Fire', 'Ice', 'Grass'];
         const pType = types[item.ProjectileType] || 'Unknown';
-        stats.push(`ELEM: ${pType}`);
+        stats.push(`TYPE: ${pType}`);
     }
     
     if (stats.length === 0) return item.Name;
@@ -516,7 +516,7 @@ function draw() {
         if (p.type === 1) ctx.fillStyle = 'orange';
         else if (p.type === 2) ctx.fillStyle = 'aqua';
         else if (p.type === 3) {
-            ctx.fillStyle = '#eee';
+            ctx.fillStyle = '#32CD32';
             radius = 8;
         } else ctx.fillStyle = '#ff0';
 
