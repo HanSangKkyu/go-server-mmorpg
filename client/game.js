@@ -73,6 +73,23 @@ gameContainer.appendChild(equipmentEl);
 let inventory = [];
 let equipment = {};
 
+function getItemTooltip(item) {
+    if (!item) return '';
+    let stats = [];
+    if (item.Attack) stats.push(`ATK: ${item.Attack}`);
+    if (item.Defense) stats.push(`DEF: ${item.Defense}`);
+    if (item.Speed) stats.push(`SPD: ${item.Speed}`);
+    
+    if (item.ProjectileType) {
+        const types = ['Default', 'Fire', 'Ice', 'Grass'];
+        const pType = types[item.ProjectileType] || 'Unknown';
+        stats.push(`ELEM: ${pType}`);
+    }
+    
+    if (stats.length === 0) return item.Name;
+    return `${item.Name}\n${stats.join(' | ')}`;
+}
+
 function renderInventory() {
     const grid = document.getElementById('inv-grid');
     grid.innerHTML = '';
@@ -85,7 +102,7 @@ function renderInventory() {
             const item = inventory[i];
             slot.classList.add('filled');
             slot.textContent = item.Name ? item.Name.substring(0, 4) : '???';
-            slot.title = `${item.Name} (ATK:${item.Attack} DEF:${item.Defense})`;
+            slot.title = getItemTooltip(item);
             
             if (item.Type === 1) slot.style.color = 'cyan';
             if (item.Type === 2) slot.style.color = 'violet';
@@ -125,7 +142,7 @@ function renderEquipment() {
         if (item) {
             slot.classList.add('filled');
             slot.textContent = item.Name ? item.Name.substring(0, 4) : 'Item';
-            slot.title = `${item.Name}`;
+            slot.title = getItemTooltip(item);
             
              if (item.Type === 1) slot.style.color = 'cyan';
              if (item.Type === 2) slot.style.color = 'violet';
