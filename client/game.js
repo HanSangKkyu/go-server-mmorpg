@@ -97,6 +97,12 @@ gameContainer.appendChild(marketEl);
 
 document.getElementById('market-close-btn').onclick = () => {
     marketEl.style.display = 'none';
+    listMode = false;
+    const listBtn = document.getElementById('list-btn');
+    if (listBtn) {
+        listBtn.textContent = 'List: OFF';
+        listBtn.style.backgroundColor = '#444';
+    }
 };
 
 const inventoryEl = document.createElement('div');
@@ -600,9 +606,27 @@ window.addEventListener('mousedown', (e) => {
     
     npcs.forEach((n) => {
         if (x >= n.x - 15 && x <= n.x + 15 && y >= n.y - 15 && y <= n.y + 15) {
-            if (n.type === 1) { 
+            if (n.type === 0) {
+                if (isNearShop()) {
+                    sellMode = true;
+                    const sellBtn = document.getElementById('sell-btn');
+                    if (sellBtn) {
+                        sellBtn.textContent = 'Sell: ON';
+                        sellBtn.style.backgroundColor = '#800';
+                    }
+                    renderInventory();
+                } else {
+                    alert("Too far from Shopkeeper!");
+                }
+            } else if (n.type === 1) {
                 if (isNearMarket()) {
                     marketEl.style.display = 'block';
+                    listMode = true;
+                    const listBtn = document.getElementById('list-btn');
+                    if (listBtn) {
+                        listBtn.textContent = 'List: ON';
+                        listBtn.style.backgroundColor = '#008000';
+                    }
                 } else {
                     alert("Too far from Market Manager!");
                 }
