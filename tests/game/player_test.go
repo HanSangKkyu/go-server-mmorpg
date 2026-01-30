@@ -6,7 +6,7 @@ import (
 )
 
 func TestNewPlayer(t *testing.T) {
-	p := game.NewPlayer(1, nil)
+	p := game.NewPlayer(1, nil, nil)
 	if p.ID != 1 {
 		t.Errorf("Expected player ID 1, got %d", p.ID)
 	}
@@ -16,7 +16,7 @@ func TestNewPlayer(t *testing.T) {
 }
 
 func TestPlayer_Move(t *testing.T) {
-	p := game.NewPlayer(1, nil)
+	p := game.NewPlayer(1, nil, nil)
 	p.Move(10.5, 20.0)
 
 	if p.X != 10.5 {

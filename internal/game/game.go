@@ -11,16 +11,19 @@ import (
 type Game struct {
 	players map[int]*Player
 	maps    map[string]*WorldMap
+	market  map[int]*MarketItem
 
-	lock   sync.RWMutex
-	lastID int
-	quitch chan struct{}
+	lock         sync.RWMutex
+	lastID       int
+	lastMarketID int
+	quitch       chan struct{}
 }
 
 func NewGame() *Game {
 	g := &Game{
 		players: make(map[int]*Player),
 		maps:    make(map[string]*WorldMap),
+		market:  make(map[int]*MarketItem),
 		quitch:  make(chan struct{}),
 	}
 
@@ -308,6 +311,15 @@ func (g *Game) AddPlayer(conn Connection) *Player {
 			})
 		}
 	}
+
+	var marketItems []*MarketItem
+	for _, it := range g.market {
+		marketItems = append(marketItems, it)
+	}
+	p.SendJSON(MsgMarketUpdate{
+		Type:  "MARKET_UPDATE",
+		Items: marketItems,
+	})
 
 	return p
 }

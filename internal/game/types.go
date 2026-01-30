@@ -76,3 +76,12 @@ type NPC struct {
 	Type NPCType
 	Name string
 }
+
+type MarketItem struct {
+	ID         int       `json:"id"`
+	SellerID   int       `json:"seller_id"`
+	SellerName string    `json:"seller_name"`
+	Item       *Item     `json:"item"`
+	Price      int       `json:"price"`
+	CreatedAt  time.Time `json:"created_at"`
+}

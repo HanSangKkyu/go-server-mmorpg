@@ -42,6 +42,20 @@ func HandleCommand(player *game.Player, text string) {
 			if err := json.Unmarshal([]byte(text), &sell); err == nil {
 				player.Sell(sell.ItemID)
 			}
+		case "MARKET_LIST":
+			var list game.MsgMarketList
+			if err := json.Unmarshal([]byte(text), &list); err == nil {
+				if player.Game() != nil {
+					player.Game().ListMarketItem(player, list.ItemID, list.Price)
+				}
+			}
+		case "MARKET_BUY":
+			var buy game.MsgMarketBuy
+			if err := json.Unmarshal([]byte(text), &buy); err == nil {
+				if player.Game() != nil {
+					player.Game().BuyMarketItem(player, buy.MarketID)
+				}
+			}
 		}
 		return
 	}

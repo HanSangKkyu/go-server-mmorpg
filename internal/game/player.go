@@ -34,6 +34,10 @@ type Player struct {
 	game *Game
 }
 
+func (p *Player) Game() *Game {
+	return p.game
+}
+
 func NewPlayer(id int, conn Connection, g *Game) *Player {
 	return &Player{
 		ID:        id,

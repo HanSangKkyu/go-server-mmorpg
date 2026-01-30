@@ -110,3 +110,22 @@ type MsgSell struct {
 	Type   string `json:"type"`
 	ItemID int    `json:"item_id"`
 }
+
+// MsgMarketList - Client -> Server
+type MsgMarketList struct {
+	Type   string `json:"type"`
+	ItemID int    `json:"item_id"`
+	Price  int    `json:"price"`
+}
+
+// MsgMarketBuy - Client -> Server
+type MsgMarketBuy struct {
+	Type     string `json:"type"`
+	MarketID int    `json:"market_id"`
+}
+
+// MsgMarketUpdate - Server -> Client
+type MsgMarketUpdate struct {
+	Type  string        `json:"type"`
+	Items []*MarketItem `json:"items"`
+}

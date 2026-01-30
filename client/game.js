@@ -57,8 +57,36 @@ style.textContent = `
     .item-gold { color: gold; }
     .item-weapon { color: cyan; }
     .item-armor { color: violet; }
+    .market-panel {
+        top: 10px;
+        right: 10px;
+        width: 250px;
+        height: 300px;
+        overflow-y: auto;
+    }
+    .market-item {
+        border-bottom: 1px solid #444;
+        padding: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+    }
+    .market-buy-btn {
+        background: #008000;
+        color: white;
+        border: none;
+        cursor: pointer;
+        padding: 2px 5px;
+    }
+    .market-buy-btn:hover { background: #00a000; }
 `;
 document.head.appendChild(style);
+
+const marketEl = document.createElement('div');
+marketEl.className = 'panel market-panel';
+marketEl.innerHTML = '<div>Market</div><div id="market-list"></div>';
+gameContainer.appendChild(marketEl);
 
 const inventoryEl = document.createElement('div');
 inventoryEl.className = 'panel inventory-panel';
@@ -72,7 +100,9 @@ gameContainer.appendChild(equipmentEl);
 
 let inventory = [];
 let equipment = {};
+let marketItems = [];
 let sellMode = false;
+let listMode = false;
 
 function isNearShop() {
     if (!myId || !players.has(myId)) return false;
@@ -117,6 +147,42 @@ function getItemTooltip(item) {
     return tooltip;
 }
 
+function renderMarket() {
+    const list = document.getElementById('market-list');
+    list.innerHTML = '';
+
+    marketItems.forEach(mItem => {
+        const div = document.createElement('div');
+        div.className = 'market-item';
+        
+        const itemInfo = document.createElement('div');
+        itemInfo.textContent = `${mItem.item.Name} (${mItem.price}G)`;
+        itemInfo.title = getItemTooltip(mItem.item) + `\nSeller: ${mItem.seller_name}`;
+        if (mItem.item.Type === 1) itemInfo.style.color = 'cyan';
+        if (mItem.item.Type === 2) itemInfo.style.color = 'violet';
+
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'market-buy-btn';
+        buyBtn.textContent = 'Buy';
+        
+        if (mItem.seller_id === myId) {
+            buyBtn.textContent = 'Cancel';
+            buyBtn.style.backgroundColor = '#800';
+        }
+
+        buyBtn.onclick = () => {
+             ws.send(JSON.stringify({
+                type: "MARKET_BUY",
+                market_id: mItem.id
+            }));
+        };
+
+        div.appendChild(itemInfo);
+        div.appendChild(buyBtn);
+        list.appendChild(div);
+    });
+}
+
 function renderInventory() {
     const grid = document.getElementById('inv-grid');
     grid.innerHTML = '';
@@ -129,27 +195,57 @@ function renderInventory() {
         h.style.justifyContent = 'space-between';
         h.style.alignItems = 'center';
         h.style.marginBottom = '5px';
+        h.style.flexWrap = 'wrap';
         h.innerHTML = `<span>Inventory</span>`;
         
-        const btn = document.createElement('button');
-        btn.id = 'sell-btn';
-        btn.textContent = 'Sell: OFF';
-        btn.style.fontSize = '10px';
-        btn.style.cursor = 'pointer';
-        btn.style.backgroundColor = '#444';
-        btn.style.color = '#fff';
-        btn.style.border = '1px solid #777';
-        btn.onclick = () => {
+        const btnContainer = document.createElement('div');
+
+        const sellBtn = document.createElement('button');
+        sellBtn.id = 'sell-btn';
+        sellBtn.textContent = 'Sell: OFF';
+        sellBtn.style.fontSize = '10px';
+        sellBtn.style.cursor = 'pointer';
+        sellBtn.style.backgroundColor = '#444';
+        sellBtn.style.color = '#fff';
+        sellBtn.style.border = '1px solid #777';
+        sellBtn.style.marginRight = '2px';
+        sellBtn.onclick = () => {
+            if (listMode) {
+                alert("Turn off List mode first.");
+                return;
+            }
             if (!sellMode && !isNearShop()) {
                 alert("Must be near a shop to sell!");
                 return;
             }
             sellMode = !sellMode;
-            btn.textContent = `Sell: ${sellMode ? 'ON' : 'OFF'}`;
-            btn.style.backgroundColor = sellMode ? '#800' : '#444';
+            sellBtn.textContent = `Sell: ${sellMode ? 'ON' : 'OFF'}`;
+            sellBtn.style.backgroundColor = sellMode ? '#800' : '#444';
             renderInventory();
         };
-        h.appendChild(btn);
+
+        const listBtn = document.createElement('button');
+        listBtn.id = 'list-btn';
+        listBtn.textContent = 'List: OFF';
+        listBtn.style.fontSize = '10px';
+        listBtn.style.cursor = 'pointer';
+        listBtn.style.backgroundColor = '#444';
+        listBtn.style.color = '#fff';
+        listBtn.style.border = '1px solid #777';
+        listBtn.onclick = () => {
+            if (sellMode) {
+                alert("Turn off Sell mode first.");
+                return;
+            }
+            listMode = !listMode;
+            listBtn.textContent = `List: ${listMode ? 'ON' : 'OFF'}`;
+            listBtn.style.backgroundColor = listMode ? '#008000' : '#444';
+            renderInventory();
+        };
+
+        btnContainer.appendChild(sellBtn);
+        btnContainer.appendChild(listBtn);
+        h.appendChild(btnContainer);
         
         const panel = document.querySelector('.inventory-panel');
         if (panel) {
@@ -177,6 +273,20 @@ function renderInventory() {
                         type: "SELL",
                         item_id: item.ID
                     }));
+                } else if (listMode) {
+                     const priceStr = prompt(`Enter price for ${item.Name}:`, "100");
+                     if (priceStr) {
+                         const price = parseInt(priceStr);
+                         if (!isNaN(price) && price > 0) {
+                             ws.send(JSON.stringify({
+                                 type: "MARKET_LIST",
+                                 item_id: item.ID,
+                                 price: price
+                             }));
+                         } else {
+                             alert("Invalid price");
+                         }
+                     }
                 } else {
                     let targetSlot = -1;
                     for (let s = 0; s < 5; s++) {
@@ -398,6 +508,11 @@ function handleMessage(msg) {
                 myStats.gold = msg.amount;
                 updateStatsUI();
             }
+            break;
+
+        case 'MARKET_UPDATE':
+            marketItems = msg.items || [];
+            renderMarket();
             break;
 
         case 'WELCOME':
