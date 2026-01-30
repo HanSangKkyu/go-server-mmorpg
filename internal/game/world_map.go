@@ -266,7 +266,33 @@ func (m *WorldMap) CheckCollisions(players []*Player) {
 				damage := 10
 				if owner, ok := playerMap[proj.OwnerID]; ok {
 					damage = owner.Attack
-					if proj.Type == ProjectileTypeGrass {
+
+					isEffective := false
+					isNotEffective := false
+
+					if proj.Type == ProjectileTypeFire && mon.Type == MonsterTypeGrass {
+						isEffective = true
+					} else if proj.Type == ProjectileTypeWater && mon.Type == MonsterTypeFire {
+						isEffective = true
+					} else if proj.Type == ProjectileTypeGrass && mon.Type == MonsterTypeWater {
+						isEffective = true
+					}
+
+					if proj.Type == ProjectileTypeFire && mon.Type == MonsterTypeWater {
+						isNotEffective = true
+					} else if proj.Type == ProjectileTypeWater && mon.Type == MonsterTypeGrass {
+						isNotEffective = true
+					} else if proj.Type == ProjectileTypeGrass && mon.Type == MonsterTypeFire {
+						isNotEffective = true
+					}
+
+					if isEffective {
+						damage *= 2
+					} else if isNotEffective {
+						damage /= 2
+					}
+
+					if isEffective {
 						damage *= 2
 					}
 				}

@@ -225,6 +225,30 @@ func (g *Game) AddPlayer(conn Connection) *Player {
 	g.players[p.ID] = p
 	fmt.Printf("Player joined: %d\n", p.ID)
 
+	// Fill inventory for testing
+	for i := 0; i < 20; i++ {
+		var item *Item
+		if i < 10 {
+			pType := ProjectileType(1 + rand.Intn(3))
+			item = &Item{
+				ID:             -1000 - i,
+				Type:           ItemTypeWeapon,
+				Name:           fmt.Sprintf("Test Sword %d", i),
+				Attack:         10 + i,
+				ProjectileType: pType,
+			}
+		} else {
+			item = &Item{
+				ID:      -1000 - i,
+				Type:    ItemTypeArmor,
+				Name:    fmt.Sprintf("Test Shield %d", i),
+				Defense: 5 + (i - 10),
+			}
+		}
+		p.Inventory = append(p.Inventory, item)
+	}
+	p.SendInventory()
+
 	p.SendJSON(MsgWelcome{
 		Type:    "WELCOME",
 		ID:      p.ID,

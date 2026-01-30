@@ -15,7 +15,7 @@ type ProjectileType int
 const (
 	ProjectileTypeDefault ProjectileType = iota
 	ProjectileTypeFire
-	ProjectileTypeIce
+	ProjectileTypeWater
 	ProjectileTypeGrass
 )
 
