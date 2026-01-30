@@ -67,6 +67,7 @@ type NPCType int
 
 const (
 	NPCTypeShop NPCType = iota
+	NPCTypeMarket
 )
 
 type NPC struct {

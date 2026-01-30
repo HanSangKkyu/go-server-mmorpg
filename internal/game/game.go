@@ -43,6 +43,14 @@ func NewGame() *Game {
 		Name: "Shopkeeper",
 	}
 
+	town.NPCs[2] = &NPC{
+		ID:   2,
+		X:    500,
+		Y:    200,
+		Type: NPCTypeMarket,
+		Name: "Market Manager",
+	}
+
 	town.Portals = append(town.Portals, &Portal{
 		X:         750,
 		Y:         300,

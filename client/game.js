@@ -63,6 +63,7 @@ style.textContent = `
         width: 250px;
         height: 300px;
         overflow-y: auto;
+        display: none;
     }
     .market-item {
         border-bottom: 1px solid #444;
@@ -85,8 +86,18 @@ document.head.appendChild(style);
 
 const marketEl = document.createElement('div');
 marketEl.className = 'panel market-panel';
-marketEl.innerHTML = '<div>Market</div><div id="market-list"></div>';
+marketEl.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Market</span>
+        <button id="market-close-btn" style="background:#800; color:white; border:none; cursor:pointer;">X</button>
+    </div>
+    <div id="market-list"></div>
+`;
 gameContainer.appendChild(marketEl);
+
+document.getElementById('market-close-btn').onclick = () => {
+    marketEl.style.display = 'none';
+};
 
 const inventoryEl = document.createElement('div');
 inventoryEl.className = 'panel inventory-panel';
@@ -103,6 +114,20 @@ let equipment = {};
 let marketItems = [];
 let sellMode = false;
 let listMode = false;
+
+function isNearMarket() {
+    if (!myId || !players.has(myId)) return false;
+    const me = players.get(myId);
+    
+    for (const [id, npc] of npcs) {
+        if (npc.type === 1) { 
+            const dx = me.x - npc.x;
+            const dy = me.y - npc.y;
+            if (dx*dx + dy*dy < 100*100) return true;
+        }
+    }
+    return false;
+}
 
 function isNearShop() {
     if (!myId || !players.has(myId)) return false;
@@ -233,6 +258,10 @@ function renderInventory() {
         listBtn.style.color = '#fff';
         listBtn.style.border = '1px solid #777';
         listBtn.onclick = () => {
+            if (!listMode && !isNearMarket()) {
+                alert("Must be near the Market Manager to list items!");
+                return;
+            }
             if (sellMode) {
                 alert("Turn off Sell mode first.");
                 return;
@@ -561,6 +590,27 @@ function updateStatsUI() {
 
 const keys = {};
 
+window.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
+    npcs.forEach((n) => {
+        if (x >= n.x - 15 && x <= n.x + 15 && y >= n.y - 15 && y <= n.y + 15) {
+            if (n.type === 1) { 
+                if (isNearMarket()) {
+                    marketEl.style.display = 'block';
+                } else {
+                    alert("Too far from Market Manager!");
+                }
+            }
+        }
+    });
+});
+
 window.addEventListener('keydown', (e) => {
     keys[e.key] = true;
 });
@@ -709,7 +759,17 @@ function draw() {
         ctx.fillStyle = '#fff';
         ctx.font = '12px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('SHOP', n.x, n.y - 20);
+
+        let label = "NPC";
+        if (n.type === 0) label = "SHOP";
+        else if (n.type === 1) {
+            label = "MARKET";
+            ctx.fillStyle = '#ffa500'; 
+            ctx.fillRect(n.x - 15, n.y - 15, 30, 30);
+            ctx.fillStyle = '#fff';
+        }
+
+        ctx.fillText(label, n.x, n.y - 20);
     });
 
     // Monsters (Colored Squares based on Type)
