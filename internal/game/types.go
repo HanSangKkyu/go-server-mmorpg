@@ -62,3 +62,17 @@ type Projectile struct {
 	VY      float64
 	Type    ProjectileType
 }
+
+type NPCType int
+
+const (
+	NPCTypeShop NPCType = iota
+)
+
+type NPC struct {
+	ID   int
+	X    float64
+	Y    float64
+	Type NPCType
+	Name string
+}

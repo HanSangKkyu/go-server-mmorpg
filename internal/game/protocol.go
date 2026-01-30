@@ -27,6 +27,7 @@ type MsgSnap struct {
 	Players     []*Entity `json:"players"`
 	Monsters    []*Entity `json:"monsters"`
 	Projectiles []*Entity `json:"projectiles"`
+	NPCs        []*Entity `json:"npcs"`
 }
 
 // MsgItemSpawn - Server -> Client

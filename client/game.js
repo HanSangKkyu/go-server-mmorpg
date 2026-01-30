@@ -230,6 +230,7 @@ const players = new Map();
 const items = new Map();
 const monsters = new Map();
 const projectiles = new Map();
+const npcs = new Map();
 let portals = [];
 
 let myId = null;
@@ -325,6 +326,22 @@ function handleMessage(msg) {
                 });
             }
             for (const [id] of projectiles) { if (!seenProjs.has(id)) projectiles.delete(id); }
+
+            // NPCs
+            const seenNPCs = new Set();
+            if (msg.npcs) {
+                msg.npcs.forEach(n => {
+                    seenNPCs.add(n.id);
+                    if (!npcs.has(n.id)) {
+                        npcs.set(n.id, { x: n.x, y: n.y, type: n.type });
+                    } else {
+                        const existing = npcs.get(n.id);
+                        existing.x = n.x;
+                        existing.y = n.y;
+                    }
+                });
+            }
+            for (const [id] of npcs) { if (!seenNPCs.has(id)) npcs.delete(id); }
             break;
 
         case 'INVENTORY':
@@ -387,6 +404,7 @@ function handleMessage(msg) {
             items.clear();
             monsters.clear();
             projectiles.clear();
+            npcs.clear();
             portals = msg.portals || [];
             
             players.forEach((_, id) => {
@@ -539,6 +557,16 @@ function draw() {
         ctx.textAlign = 'center';
         ctx.fillText(`To ${p.target}`, p.x, p.y + 5);
         ctx.fillStyle = '#800080';
+    });
+
+    npcs.forEach((n) => {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(n.x - 15, n.y - 15, 30, 30);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('SHOP', n.x, n.y - 20);
     });
 
     // Monsters (Colored Squares based on Type)

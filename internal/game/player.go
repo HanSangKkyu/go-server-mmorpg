@@ -30,9 +30,11 @@ type Player struct {
 	Defense int
 	Speed   float64
 	Gold    int
+
+	game *Game
 }
 
-func NewPlayer(id int, conn Connection) *Player {
+func NewPlayer(id int, conn Connection, g *Game) *Player {
 	return &Player{
 		ID:        id,
 		MapID:     "town",
@@ -49,6 +51,7 @@ func NewPlayer(id int, conn Connection) *Player {
 		Defense: 0,
 		Speed:   5.0,
 		Gold:    0,
+		game:    g,
 	}
 }
 
@@ -101,6 +104,26 @@ func (p *Player) Unequip(slot int) {
 }
 
 func (p *Player) Sell(itemID int) {
+	if p.game != nil {
+		m, ok := p.game.maps[p.MapID]
+		if ok {
+			nearShop := false
+			for _, npc := range m.NPCs {
+				if npc.Type == NPCTypeShop {
+					dx := p.X - npc.X
+					dy := p.Y - npc.Y
+					if dx*dx+dy*dy < 100*100 {
+						nearShop = true
+						break
+					}
+				}
+			}
+			if !nearShop {
+				return
+			}
+		}
+	}
+
 	var itemIdx int = -1
 	for i, it := range p.Inventory {
 		if it.ID == itemID {

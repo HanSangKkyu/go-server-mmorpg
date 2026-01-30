@@ -19,6 +19,7 @@ type WorldMap struct {
 	ID          string
 	Items       map[int]*Item
 	Monsters    map[int]*Monster
+	NPCs        map[int]*NPC
 	Projectiles map[int]*Projectile
 	Portals     []*Portal
 
@@ -37,6 +38,7 @@ func NewWorldMap(id string) *WorldMap {
 		ID:          id,
 		Items:       make(map[int]*Item),
 		Monsters:    make(map[int]*Monster),
+		NPCs:        make(map[int]*NPC),
 		Projectiles: make(map[int]*Projectile),
 		Portals:     make([]*Portal, 0),
 		Width:       800,

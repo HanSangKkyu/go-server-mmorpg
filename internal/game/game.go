@@ -32,6 +32,14 @@ func NewGame() *Game {
 	g.maps["field"] = field
 	g.maps["dungeon"] = dungeon
 
+	town.NPCs[1] = &NPC{
+		ID:   1,
+		X:    400,
+		Y:    200,
+		Type: NPCTypeShop,
+		Name: "Shopkeeper",
+	}
+
 	town.Portals = append(town.Portals, &Portal{
 		X:         750,
 		Y:         300,
@@ -129,6 +137,7 @@ func (g *Game) Update() {
 			Players:     make([]*Entity, 0, len(mapPlayers)),
 			Monsters:    make([]*Entity, 0, len(m.Monsters)),
 			Projectiles: make([]*Entity, 0, len(m.Projectiles)),
+			NPCs:        make([]*Entity, 0, len(m.NPCs)),
 		}
 
 		for _, p := range mapPlayers {
@@ -142,6 +151,14 @@ func (g *Game) Update() {
 				Type:  int(mon.Type),
 				HP:    mon.HP,
 				MaxHP: mon.MaxHP,
+			})
+		}
+		for _, npc := range m.NPCs {
+			snap.NPCs = append(snap.NPCs, &Entity{
+				ID:   npc.ID,
+				X:    npc.X,
+				Y:    npc.Y,
+				Type: int(npc.Type),
 			})
 		}
 		for _, proj := range m.Projectiles {
@@ -221,7 +238,7 @@ func (g *Game) AddPlayer(conn Connection) *Player {
 	defer g.lock.Unlock()
 
 	g.lastID++
-	p := NewPlayer(g.lastID, conn)
+	p := NewPlayer(g.lastID, conn, g)
 	g.players[p.ID] = p
 	fmt.Printf("Player joined: %d\n", p.ID)
 
