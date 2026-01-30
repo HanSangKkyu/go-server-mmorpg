@@ -72,6 +72,14 @@ gameContainer.appendChild(equipmentEl);
 
 let inventory = [];
 let equipment = {};
+let sellMode = false;
+
+function getSellPrice(item) {
+    const atk = item.Attack || 0;
+    const def = item.Defense || 0;
+    const spd = item.Speed || 0;
+    return 10 + (atk + def + Math.floor(spd)) * 5;
+}
 
 function getItemTooltip(item) {
     if (!item) return '';
@@ -86,14 +94,51 @@ function getItemTooltip(item) {
         stats.push(`TYPE: ${pType}`);
     }
     
-    if (stats.length === 0) return item.Name;
-    return `${item.Name}\n${stats.join(' | ')}`;
+    let tooltip = item.Name;
+    if (stats.length > 0) {
+        tooltip += `\n${stats.join(' | ')}`;
+    }
+    
+    tooltip += `\nSell: ${getSellPrice(item)} G`;
+    return tooltip;
 }
 
 function renderInventory() {
     const grid = document.getElementById('inv-grid');
     grid.innerHTML = '';
     
+    const header = document.getElementById('inv-header');
+    if (!header) {
+        const h = document.createElement('div');
+        h.id = 'inv-header';
+        h.style.display = 'flex';
+        h.style.justifyContent = 'space-between';
+        h.style.alignItems = 'center';
+        h.style.marginBottom = '5px';
+        h.innerHTML = `<span>Inventory</span>`;
+        
+        const btn = document.createElement('button');
+        btn.id = 'sell-btn';
+        btn.textContent = 'Sell: OFF';
+        btn.style.fontSize = '10px';
+        btn.style.cursor = 'pointer';
+        btn.style.backgroundColor = '#444';
+        btn.style.color = '#fff';
+        btn.style.border = '1px solid #777';
+        btn.onclick = () => {
+            sellMode = !sellMode;
+            btn.textContent = `Sell: ${sellMode ? 'ON' : 'OFF'}`;
+            btn.style.backgroundColor = sellMode ? '#800' : '#444';
+            renderInventory();
+        };
+        h.appendChild(btn);
+        
+        const panel = document.querySelector('.inventory-panel');
+        if (panel) {
+            panel.replaceChild(h, panel.firstChild);
+        }
+    }
+
     for (let i = 0; i < 20; i++) {
         const slot = document.createElement('div');
         slot.className = 'slot';
@@ -108,21 +153,29 @@ function renderInventory() {
             if (item.Type === 2) slot.style.color = 'violet';
 
             slot.onclick = () => {
-                let targetSlot = -1;
-                for (let s = 0; s < 5; s++) {
-                    if (!equipment[s]) {
-                        targetSlot = s;
-                        break;
+                if (sellMode) {
+                    console.log(`Selling item ${item.ID}`);
+                    ws.send(JSON.stringify({
+                        type: "SELL",
+                        item_id: item.ID
+                    }));
+                } else {
+                    let targetSlot = -1;
+                    for (let s = 0; s < 5; s++) {
+                        if (!equipment[s]) {
+                            targetSlot = s;
+                            break;
+                        }
                     }
+                    if (targetSlot === -1) targetSlot = 0;
+    
+                    console.log(`Equipping item ${item.ID} to slot ${targetSlot}`);
+                    ws.send(JSON.stringify({
+                        type: "EQUIP",
+                        item_id: item.ID,
+                        slot: targetSlot
+                    }));
                 }
-                if (targetSlot === -1) targetSlot = 0;
-
-                console.log(`Equipping item ${item.ID} to slot ${targetSlot}`);
-                ws.send(JSON.stringify({
-                    type: "EQUIP",
-                    item_id: item.ID,
-                    slot: targetSlot
-                }));
             };
         }
         

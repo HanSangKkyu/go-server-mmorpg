@@ -103,3 +103,9 @@ type MsgMove struct {
 	X    float64 `json:"x"`
 	Y    float64 `json:"y"`
 }
+
+// MsgSell - Client -> Server
+type MsgSell struct {
+	Type   string `json:"type"`
+	ItemID int    `json:"item_id"`
+}

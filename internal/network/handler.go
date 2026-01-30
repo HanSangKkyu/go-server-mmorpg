@@ -37,6 +37,11 @@ func HandleCommand(player *game.Player, text string) {
 			if err := json.Unmarshal([]byte(text), &unequip); err == nil {
 				player.Unequip(unequip.Slot)
 			}
+		case "SELL":
+			var sell game.MsgSell
+			if err := json.Unmarshal([]byte(text), &sell); err == nil {
+				player.Sell(sell.ItemID)
+			}
 		}
 		return
 	}

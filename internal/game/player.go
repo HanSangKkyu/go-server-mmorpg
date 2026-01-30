@@ -100,6 +100,36 @@ func (p *Player) Unequip(slot int) {
 	p.SendEquipment()
 }
 
+func (p *Player) Sell(itemID int) {
+	var itemIdx int = -1
+	for i, it := range p.Inventory {
+		if it.ID == itemID {
+			itemIdx = i
+			break
+		}
+	}
+
+	if itemIdx == -1 {
+		return
+	}
+
+	item := p.Inventory[itemIdx]
+
+	// Price formula: 10 + (Atk + Def + Spd) * 5
+	statsSum := item.Attack + item.Defense + int(item.Speed)
+	price := 10 + statsSum*5
+
+	p.Gold += price
+
+	p.Inventory = append(p.Inventory[:itemIdx], p.Inventory[itemIdx+1:]...)
+
+	p.SendInventory()
+	p.SendJSON(MsgGoldUpdate{
+		Type:   "GOLD_UPDATE",
+		Amount: p.Gold,
+	})
+}
+
 func (p *Player) RecalculateStats() {
 	atk := 10
 	def := 0
