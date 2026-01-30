@@ -495,12 +495,16 @@ function draw() {
     });
 
     projectiles.forEach((p) => {
+        let radius = 3;
         if (p.type === 1) ctx.fillStyle = 'orange';
         else if (p.type === 2) ctx.fillStyle = 'aqua';
-        else ctx.fillStyle = '#ff0';
+        else if (p.type === 3) {
+            ctx.fillStyle = '#eee';
+            radius = 8;
+        } else ctx.fillStyle = '#ff0';
 
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
         ctx.fill();
     });
 

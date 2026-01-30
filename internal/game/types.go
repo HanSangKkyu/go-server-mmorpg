@@ -10,6 +10,15 @@ const (
 	ItemTypeArmor
 )
 
+type ProjectileType int
+
+const (
+	ProjectileTypeDefault ProjectileType = iota
+	ProjectileTypeFire
+	ProjectileTypeIce
+	ProjectileTypeGrass
+)
+
 type Item struct {
 	ID        int
 	Type      ItemType
@@ -24,7 +33,7 @@ type Item struct {
 	Speed   float64
 
 	// Special
-	ProjectileType int
+	ProjectileType ProjectileType
 }
 
 type MonsterType int
@@ -51,5 +60,5 @@ type Projectile struct {
 	Y       float64
 	VX      float64
 	VY      float64
-	Type    int // 0: Default, 1: Fire, 2: Ice, etc.
+	Type    ProjectileType
 }

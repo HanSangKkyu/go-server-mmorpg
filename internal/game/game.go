@@ -145,7 +145,7 @@ func (g *Game) Update() {
 			})
 		}
 		for _, proj := range m.Projectiles {
-			snap.Projectiles = append(snap.Projectiles, &Entity{ID: proj.ID, X: proj.X, Y: proj.Y})
+			snap.Projectiles = append(snap.Projectiles, &Entity{ID: proj.ID, X: proj.X, Y: proj.Y, Type: int(proj.Type)})
 		}
 
 		data, err := json.Marshal(snap)

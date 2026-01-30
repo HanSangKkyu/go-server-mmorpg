@@ -125,23 +125,43 @@ func (m *WorldMap) UpdatePlayerShooting(players []*Player) {
 			p.LastShoot = now
 			m.lastProjID++
 
-			projType := 0
+			var projType ProjectileType = ProjectileTypeDefault
 			for _, item := range p.Equipment {
-				if item != nil && item.ProjectileType > 0 {
+				if item != nil && item.ProjectileType > ProjectileTypeDefault {
 					projType = item.ProjectileType
 				}
 			}
 
-			proj := &Projectile{
-				ID:      m.lastProjID,
-				OwnerID: p.ID,
-				X:       p.X,
-				Y:       p.Y,
-				VX:      vx,
-				VY:      vy,
-				Type:    projType,
+			// Base angles for projectiles (in radians)
+			angles := []float64{0}
+
+			switch projType {
+			case ProjectileTypeFire:
+				angles = []float64{-0.2, 0, 0.2}
+			case ProjectileTypeIce:
+				angles = []float64{-0.1, 0.1}
 			}
-			m.Projectiles[proj.ID] = proj
+
+			m.lastProjID--
+
+			for _, angle := range angles {
+				m.lastProjID++
+
+				nvx := vx*math.Cos(angle) - vy*math.Sin(angle)
+				nvy := vx*math.Sin(angle) + vy*math.Cos(angle)
+
+				proj := &Projectile{
+					ID:      m.lastProjID,
+					OwnerID: p.ID,
+					X:       p.X,
+					Y:       p.Y,
+					VX:      nvx,
+					VY:      nvy,
+					Type:    projType,
+				}
+				m.Projectiles[proj.ID] = proj
+			}
+
 		}
 	}
 }
@@ -238,12 +258,21 @@ func (m *WorldMap) CheckCollisions(players []*Player) {
 		for mid, mon := range m.Monsters {
 			dx := proj.X - mon.X
 			dy := proj.Y - mon.Y
-			if dx*dx+dy*dy < 400 {
+
+			hitRadius := 20.0
+			if proj.Type == ProjectileTypeGrass {
+				hitRadius = 40.0
+			}
+
+			if dx*dx+dy*dy < hitRadius*hitRadius {
 				projToRemove[pid] = true
 
 				damage := 10
 				if owner, ok := playerMap[proj.OwnerID]; ok {
 					damage = owner.Attack
+					if proj.Type == ProjectileTypeGrass {
+						damage *= 2
+					}
 				}
 				mon.HP -= damage
 
@@ -282,7 +311,8 @@ func (m *WorldMap) spawnItemAt(x, y float64, players []*Player) {
 	randVal := rand.Float64()
 	var iType ItemType
 	var name string
-	var atk, def, projType int
+	var atk, def int
+	var projType ProjectileType
 
 	if randVal < 0.5 {
 		iType = ItemTypeGold
@@ -291,7 +321,7 @@ func (m *WorldMap) spawnItemAt(x, y float64, players []*Player) {
 		iType = ItemTypeWeapon
 		name = "Sword"
 		atk = 5 + rand.Intn(10)
-		projType = 1 + rand.Intn(2)
+		projType = ProjectileTypeGrass
 	} else {
 		iType = ItemTypeArmor
 		name = "Shield"

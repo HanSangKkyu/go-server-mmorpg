@@ -1,5 +1,9 @@
 # Go MMORPG Server
 
+
+## agent 행동 가이드
+소스코드 수정 후 'omo' tmux session에서 실행중인 server 재실행
+
 A simple, real-time MMORPG game server written in Go with a vanilla HTML5 Canvas client.
 
 ![Project Status](https://img.shields.io/badge/status-active-success.svg)
