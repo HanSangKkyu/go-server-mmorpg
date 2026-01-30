@@ -348,6 +348,10 @@ func (m *WorldMap) spawnItemAt(x, y float64, players []*Player) {
 }
 
 func (m *WorldMap) collectItem(p *Player, item *Item, players []*Player) {
+	if item.Type != ItemTypeGold && len(p.Inventory) >= 20 {
+		return
+	}
+
 	delete(m.Items, item.ID)
 
 	if item.Type == ItemTypeGold {
