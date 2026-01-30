@@ -74,6 +74,20 @@ let inventory = [];
 let equipment = {};
 let sellMode = false;
 
+function isNearShop() {
+    if (!myId || !players.has(myId)) return false;
+    const me = players.get(myId);
+    
+    for (const [id, npc] of npcs) {
+        if (npc.type === 0) { // 0 = Shop
+            const dx = me.x - npc.x;
+            const dy = me.y - npc.y;
+            if (dx*dx + dy*dy < 100*100) return true;
+        }
+    }
+    return false;
+}
+
 function getSellPrice(item) {
     const atk = item.Attack || 0;
     const def = item.Defense || 0;
@@ -126,6 +140,10 @@ function renderInventory() {
         btn.style.color = '#fff';
         btn.style.border = '1px solid #777';
         btn.onclick = () => {
+            if (!sellMode && !isNearShop()) {
+                alert("Must be near a shop to sell!");
+                return;
+            }
             sellMode = !sellMode;
             btn.textContent = `Sell: ${sellMode ? 'ON' : 'OFF'}`;
             btn.style.backgroundColor = sellMode ? '#800' : '#444';
@@ -502,6 +520,16 @@ function update() {
 
     const me = players.get(myId);
     if (me) {
+        if (sellMode && !isNearShop()) {
+            sellMode = false;
+            const btn = document.getElementById('sell-btn');
+            if (btn) {
+                btn.textContent = 'Sell: OFF';
+                btn.style.backgroundColor = '#444';
+            }
+            renderInventory();
+        }
+
         let moved = false;
         let newX = me.x;
         let newY = me.y;
